@@ -1,87 +1,73 @@
-use std::fs;
-use std::io;
+#![feature(
+    slice_group_by,
+    iter_array_chunks,
+    array_chunks,
+    hash_drain_filter,
+    array_windows
+)]
 
-const INPUT_PATH: &str = "./input/";
+use std::env;
+use std::io::{BufRead, BufReader};
+use std::time::{Duration, Instant};
 
-#[derive(Debug)]
-struct Day {
-    num: usize,
-    data: String,
+mod util;
+
+/// Reads the lines from the input file into a relevant
+/// model of the data for the day's solution.
+trait FromInput {
+    fn from_lines(lines: impl Iterator<Item = String>) -> Self;
 }
 
-impl Day {
-    fn debug() {}
+/// Solutions for a day of Advent of Code.
+trait DaySolution {
+    fn part_one(&self) -> String;
+    fn part_two(&self) -> String;
+}
 
+/// Reads the input for a day from the `.input` directory.
+fn load_input(day: usize) -> impl Iterator<Item = String> {
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .open(format!(".input/{day}.txt"))
+        .expect("Failed to access data for day");
+    let buffered_file = BufReader::new(file);
+
+    buffered_file
+        .lines()
+        .map(|line| line.expect("Failed to read line from data file"))
+}
+
+/// Gets the solution for the given day as a trait object.
+fn get_day_solution(day: usize, lines: impl Iterator<Item = String>) -> Box<dyn DaySolution> {
+    match day {
+        // 1 => Box::new(day1::Day1::from_lines(lines)),
+        _other => panic!("Day hasn't been solved yet"),
+    }
+}
+
+/// Times the execution of a function.
+fn time_execution(work: impl FnOnce() -> String) -> (String, Duration) {
+    let start = Instant::now();
+    let result = work();
+    let duration = start.elapsed();
+
+    (result, duration)
 }
 
 fn main() {
-    // Get the day first
-    let day = get_day();
-    // We will start by parsing the input from a text filee
-    // parse_input(day);
-    // // next we'll do the day specific items to parse
-    let data = parse_day_input(day);
-    // println!("{:#?}",data);
+    let day = env::args()
+        .nth(1)
+        .expect("Must provide a day to solve")
+        .parse::<usize>()
+        .expect("Provided day wasn't a valid integer");
 
-    // after the day specific we will solve the part 1
-    let max = solve_1(data);
-    println!("{max:?}");
-    // now we solve for part 2
-    solve_2();
+    let input = load_input(day);
+    let solution = get_day_solution(day, input);
+    println!("Solving day {day}...");
 
+    let (part_one, duration) = time_execution(|| solution.part_one());
+    println!("Part 1: {part_one} ({} seconds)", duration.as_secs_f32());
 
-}
-// give this a day in string, conver to usize and return Day Struct
-fn get_day() -> Day {
-    println!("What Day?");
-    let mut num = String::new();
-    io::stdin().read_line(&mut num).unwrap();
-    // println!("{:#?}",num);
-    // let num = read_to_string(io::stdin()).unwrap().parse::<usize>().unwrap();
-    // num should be a usize or u32 now.
-    // let num = num.parse::<usize>().unwrap();
-    let num: usize = num.trim().parse().unwrap();
-    let data = parse_input(num);
-    Day { num, data }
-
-}
-
-fn parse_day_input(day: Day) -> Vec<Option<usize>> {
-    let lines: Vec<_> = day.data
-        // now we split our data by a blank line
-        // I think this is the same as .lines()....
-        // .split("\n")
-        .lines()
-        .map(|line| line.trim().parse::<usize>().ok())
-        .collect();
-    lines
-}
-
-fn parse_input(day: usize) -> String {
-    let day_string = day.to_string();
-    let path = format!("{INPUT_PATH}{day_string}.txt");
-    let data = fs::read_to_string(path).unwrap();
-    data
-}
-fn solve_1(data: Vec<Option<usize>> ) -> usize {
-    // this returns a sum from the largest group from our list of values
-    // these values are deliminated by a 0
-    // let largest: Vec<&[usize]> = data
-    //                 .split(|num| num != &0)
-    //                 .sum::<S>()
-    //                 // .map(|&line| &line.sum())
-    //                 .collect();
-    
-    let group = data
-        .split(|num| num.is_none())
-        .map(|g| g.iter().map(|v| v.unwrap()).sum::<usize>())
-        // .collect::<Vec<_>>();
-        .max();
-    // println!("{group:?}");
-    group.unwrap()
-}
-fn solve_2() -> usize {
-
-    let data = 0;
-    data
+    let (part_two, duration) = time_execution(|| solution.part_two());
+    println!("Part 2: {part_two} ({} seconds)", duration.as_secs_f32());
 }
